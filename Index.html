@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contabilidad Sencilla</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1000px;
+        }
+        .receipt {
+            border: 1px solid #dee2e6;
+            padding: 2rem;
+            background-color: #fff;
+        }
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #000;
+            padding-bottom: 1rem;
+        }
+        .receipt-body p {
+            font-size: 1.1rem;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-section, .print-section * {
+                visibility: visible;
+            }
+            .print-section {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .modal-footer {
+                display: none;
+            }
+            .modal-header .btn-close { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Sistema de Contabilidad</h1>
+
+        <!-- Reportes y Totales -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 id="totals-title" class="mb-0">Resumen General</h4>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card text-white bg-success">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Ingresos</h5>
+                        <p class="card-text fs-4 fw-bold" id="total-income">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card text-white bg-danger">
+                            <div class="card-body">
+                                <h5 class="card-title">Total Egresos</h5>
+                        <p class="card-text fs-4 fw-bold" id="total-expenses">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">Saldo Total</h5>
+                        <p class="card-text fs-4 fw-bold" id="total-balance">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de Ingreso -->
+        <div class="card mb-5">
+            <div class="card-header">
+                <h3 id="form-title">Nuevo Asiento Contable</h3>
+            </div>
+            <div class="card-body">
+                <form id="accounting-form">
+                    <input type="hidden" id="edit-id">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="date" class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="date" required>
+                        </div>
+                        <div class="col-md-9 mb-3">
+                            <label for="concept" class="form-label">Concepto</label>
+                            <input type="text" class="form-control" id="concept" placeholder="Ej: Ofrenda, Donación, Compra de sillas" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="person" class="form-label">Recibido de / Pagado a</label>
+                            <input type="text" class="form-control" id="person" placeholder="Nombre de la persona o entidad (Opcional)">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="type" class="form-label">Tipo de Movimiento</label>
+                            <select id="type" class="form-select" required>
+                                <option value="Ingreso">Ingreso</option>
+                                <option value="Egreso">Egreso</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="amount" class="form-label">Monto</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="amount" step="1" min="0" placeholder="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fund" class="form-label">Fondo Asignado</label>
+                            <select id="fund" class="form-select" required>
+                                <option value="Fondo Local">Fondo Local</option>
+                                <option value="Dorcas">Dorcas</option>
+                                <option value="Jóvenes">Jóvenes</option>
+                                <option value="Misiones">Misiones</option>
+                                <option value="Caballeros">Caballeros</option>
+                                <option value="Musica">Música</option>
+                                <option value="Escuela Dominical">Escuela Dominical</option>
+                                <option value="EVB">EVB</option>
+                                <option value="Obra Social">Obra Social</option>
+                                <option value="Construccion">Construcción</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" id="form-submit-button" class="btn btn-primary">Guardar Asiento</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Historial de Asientos -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <h2 class="mb-2 me-3">Historial de Asientos</h2>
+            <div class="d-flex flex-wrap align-items-center">
+                <div class="me-2 mb-2">
+                    <label for="fund-filter" class="form-label-sm me-1">Filtrar por Fondo:</label>
+                    <select id="fund-filter" class="form-select form-select-sm" style="width: auto; display: inline-block;">
+                        <option value="all">Todos los Fondos</option>
+                        <!-- Opciones se llenarán con JS -->
+                    </select>
+                </div>
+                <button class="btn btn-info btn-sm me-2 mb-2" title="Realizar conteo de efectivo" onclick="openCashReconciliation()">Arqueo de Caja</button>
+                <button class="btn btn-secondary btn-sm me-2 mb-2" title="Exportar vista actual a CSV" onclick="exportToCSV()">Exportar a CSV</button>
+                <button class="btn btn-danger btn-sm mb-2" title="Eliminar todos los registros permanentemente" onclick="clearHistory()">Limpiar Historial</button>
+            </div>
+        </div>
+        <div class="card mb-5">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Concepto</th>
+                                <th>Recibido de / Pagado a</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                                <th>Fondo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Las filas se insertarán aquí con JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para el Recibo -->
+    <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receiptModalLabel">Recibo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="receipt-content">
+                    <!-- El contenido del recibo se generará aquí -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="printContent('receipt-content')">Imprimir Recibo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Arqueo de Caja -->
+    <div class="modal fade" id="cashReconciliationModal" tabindex="-1" aria-labelledby="cashReconciliationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cashReconciliationModalLabel">Arqueo de Caja</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="reconciliation-print-area">
+                        <h3 class="text-center mb-4">Arqueo de Caja (Fondo Local)</h3>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <h5>Saldo en Sistema:</h5>
+                                <p class="fs-4 fw-bold" id="system-balance">$0</p>
+                            </div>
+                            <div class="col-6">
+                                <h5>Diferencia:</h5>
+                                <p class="fs-4 fw-bold" id="balance-difference">$0</p>
+                            </div>
+                        </div>
+                        <h5>Conteo de Efectivo Físico</h5>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Denominación</th>
+                                        <th>Cantidad</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="denomination-table">
+                                    <!-- Filas generadas por JS -->
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="2" class="text-end">Total Efectivo Físico:</th>
+                                        <th id="physical-total">$0</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="printContent('reconciliation-print-area')">Imprimir Arqueo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('accounting-form');
+            const historyTableBody = document.getElementById('history-table-body');
+            const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+            const receiptContent = document.getElementById('receipt-content');
+            const formTitle = document.getElementById('form-title');
+            const formSubmitButton = document.getElementById('form-submit-button');
+            const fundFilter = document.getElementById('fund-filter');
+            const totalsTitle = document.getElementById('totals-title');
+            const cashReconciliationModal = new bootstrap.Modal(document.getElementById('cashReconciliationModal'));
+            const fundSelect = document.getElementById('fund');
+
+            // Poblar el dropdown de filtro de fondos
+            Array.from(fundSelect.options).forEach(option => {
+                fundFilter.add(option.cloneNode(true));
+            });
+
+            const formatNumber = (value) => {
+                return new Intl.NumberFormat('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+            };
+
+
+            const getEntries = () => {
+                return JSON.parse(localStorage.getItem('accountingEntries')) || [];
+            };
+
+            const saveEntries = (entries) => {
+                localStorage.setItem('accountingEntries', JSON.stringify(entries));
+            };
+
+            const calculateAndRenderTotals = (entries) => {
+                let totalIncome = 0;
+                let totalExpenses = 0;
+
+                entries.forEach(entry => {
+                    const amount = parseFloat(entry.amount);
+                    if (entry.type === 'Ingreso') {
+                        totalIncome += amount;
+                    } else {
+                        totalExpenses += amount;
+                    }
+                });
+
+                const balance = totalIncome - totalExpenses;
+
+                document.getElementById('total-income').textContent = `$${formatNumber(totalIncome)}`;
+                document.getElementById('total-expenses').textContent = `$${formatNumber(totalExpenses)}`;
+                
+                const balanceEl = document.getElementById('total-balance');
+                balanceEl.textContent = `$${formatNumber(balance)}`;
+                
+                const balanceCard = balanceEl.closest('.card');
+                balanceCard.className = 'card text-white'; // Reset classes
+                balanceCard.classList.add(balance >= 0 ? 'bg-primary' : 'bg-danger');
+            };
+
+            const renderEntries = (entries) => {
+                historyTableBody.innerHTML = '';
+                // Mostrar los más recientes primero
+                entries.slice().reverse().forEach(entry => {
+                    const row = document.createElement('tr');
+                    
+                    const typeClass = entry.type === 'Ingreso' ? 'text-success' : 'text-danger';
+                    const sign = entry.type === 'Ingreso' ? '+' : '-';
+
+                    row.innerHTML = `
+                        <td>${entry.date}</td>
+                        <td>${entry.concept}</td>
+                        <td>${entry.person || ''}</td>
+                        <td><span class="fw-bold ${typeClass}">${entry.type}</span></td>
+                        <td><span class="fw-bold ${typeClass}">${sign}$${formatNumber(parseFloat(entry.amount))}</span></td>
+                        <td>${entry.fund}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning me-1" onclick="startEdit(${entry.id})">Editar</button>
+                            <button class="btn btn-sm btn-info" onclick="showReceiptById(${entry.id})">Ver Recibo</button>
+                        </td>
+                    `;
+                    historyTableBody.appendChild(row);
+                });
+            };
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const editId = document.getElementById('edit-id').value;
+                const entries = getEntries();
+
+                const entryData = {
+                    date: document.getElementById('date').value,
+                    concept: document.getElementById('concept').value,
+                    person: document.getElementById('person').value,
+                    type: document.getElementById('type').value,
+                    amount: document.getElementById('amount').value,
+                    fund: document.getElementById('fund').value,
+                };
+
+                if (editId) {
+                    // Modo Edición
+                    const entryIndex = entries.findIndex(e => e.id == editId);
+                    if (entryIndex > -1) {
+                        entries[entryIndex] = {
+                            ...entries[entryIndex], // Conserva el ID original
+                            ...entryData
+                        };
+                    }
+                } else {
+                    // Modo Agregar
+                    const newEntry = {
+                        id: Date.now(),
+                        ...entryData
+                    };
+                    entries.push(newEntry);
+                }
+
+                saveEntries(entries);
+                cancelEdit(); // Restablece el formulario y los botones
+                updateDisplay(); // Actualiza toda la vista
+            });
+
+            const cancelEdit = () => {
+                form.reset();
+                document.getElementById('edit-id').value = '';
+                formTitle.textContent = 'Nuevo Asiento Contable';
+                formSubmitButton.textContent = 'Guardar Asiento';
+                
+                const cancelButton = document.getElementById('cancel-edit-btn');
+                if (cancelButton) {
+                    cancelButton.remove();
+                }
+            };
+
+            window.startEdit = (id) => {
+                const entries = getEntries();
+                const entryToEdit = entries.find(e => e.id === id);
+                if (!entryToEdit) return;
+
+                // Rellenar el formulario
+                document.getElementById('edit-id').value = entryToEdit.id;
+                document.getElementById('date').value = entryToEdit.date;
+                document.getElementById('concept').value = entryToEdit.concept;
+                document.getElementById('person').value = entryToEdit.person;
+                document.getElementById('type').value = entryToEdit.type;
+                document.getElementById('amount').value = entryToEdit.amount;
+                document.getElementById('fund').value = entryToEdit.fund;
+
+                // Actualizar la UI al modo edición
+                formTitle.textContent = 'Editar Asiento Contable';
+                formSubmitButton.textContent = 'Actualizar Asiento';
+                
+                if (!document.getElementById('cancel-edit-btn')) {
+                    const cancelButton = document.createElement('button');
+                    cancelButton.type = 'button';
+                    cancelButton.id = 'cancel-edit-btn';
+                    cancelButton.textContent = 'Cancelar';
+                    cancelButton.className = 'btn btn-secondary ms-2';
+                    cancelButton.onclick = cancelEdit;
+                    formSubmitButton.after(cancelButton);
+                }
+                form.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            window.showReceiptById = (id) => {
+                const entries = getEntries();
+                const entry = entries.find(e => e.id === id);
+                if (!entry) return;
+                receiptContent.innerHTML = `
+                    <div id="receipt-print-area">
+                        <div class="receipt">
+                            <div class="receipt-header">
+                                <h2>RECIBO</h2>
+                                <span>ID de Transacción: ${entry.id}</span>
+                            </div>
+                            <div class="receipt-body">
+                                <p><strong>Fecha:</strong> ${entry.date}</p>
+                                <p><strong>Recibido de / Pagado a:</strong> ${entry.person || '_________________________'}</p>
+                                <p><strong>Concepto:</strong> ${entry.concept}</p>
+                                <p><strong>Tipo de Movimiento:</strong> ${entry.type}</p>
+                                <p><strong>Monto:</strong> $${formatNumber(parseFloat(entry.amount))}</p>
+                                <p><strong>Fondo Asignado:</strong> ${entry.fund}</p>
+                                <br><br>
+                                <div class="row mt-5">
+                                    <div class="col-6 text-center">
+                                        <p>_________________________</p>
+                                        <p><strong>Firma Recibido</strong></p>
+                                    </div>
+                                    <div class="col-6 text-center">
+                                        <p>_________________________</p>
+                                        <p><strong>Firma Tesorero(a)</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                receiptModal.show();
+            };
+
+            window.printContent = (elementId) => {
+                const printArea = document.getElementById(elementId);
+                if (!printArea) return;
+
+                const parentModalBody = printArea.closest('.modal-body');
+                if (parentModalBody) {
+                    parentModalBody.classList.add('print-section');
+                    window.print();
+                    parentModalBody.classList.remove('print-section');
+                }
+            };
+
+            window.exportToCSV = () => {
+                const filteredEntries = getFilteredEntries();
+                if (filteredEntries.length === 0) {
+                    alert('No hay datos para exportar en la vista actual.');
+                    return;
+                }
+
+                const headers = ['Fecha', 'Concepto', 'Recibido de / Pagado a', 'Tipo', 'Monto', 'Fondo Asignado'];
+                
+                const escapeCSV = (value) => {
+                    if (value === null || value === undefined) return '';
+                    let str = String(value);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        return `"${str.replace(/"/g, '""')}"`;
+                    }
+                    return str;
+                };
+
+                const csvRows = [
+                    headers.join(','),
+                    ...filteredEntries.map(e => [
+                        e.date,
+                        escapeCSV(e.concept),
+                        escapeCSV(e.person),
+                        e.type,
+                        e.amount,
+                        escapeCSV(e.fund)
+                    ].join(','))
+                ];
+
+                const csvContent = csvRows.join('\n');
+                const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'historial_contable.csv';
+                link.click();
+            };
+
+            window.clearHistory = () => {
+                const confirmation = confirm('¿Estás seguro de que deseas eliminar TODO el historial? Esta acción no se puede deshacer.');
+                if (confirmation) {
+                    saveEntries([]); // Guarda un array vacío, limpiando el historial
+                    updateDisplay();
+                    alert('El historial ha sido limpiado.');
+                }
+            };
+
+            const getFilteredEntries = () => {
+                const allEntries = getEntries();
+                const selectedFund = fundFilter.value;
+                return selectedFund === 'all' 
+                    ? allEntries 
+                    : allEntries.filter(e => e.fund === selectedFund);
+            };
+
+            const updateDisplay = () => {
+                const filteredEntries = getFilteredEntries();
+                const selectedFund = fundFilter.value;
+
+                totalsTitle.textContent = selectedFund === 'all' ? 'Resumen General' : `Resumen para: ${selectedFund}`;
+
+                renderEntries(filteredEntries);
+                calculateAndRenderTotals(filteredEntries);
+            };
+
+            fundFilter.addEventListener('change', updateDisplay);
+
+            // --- Lógica de Arqueo de Caja ---
+            const denominations = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50];
+
+            const buildDenominationTable = () => {
+                const tableBody = document.getElementById('denomination-table');
+                tableBody.innerHTML = '';
+                denominations.forEach(value => {
+                    const row = document.createElement('tr');
+                    const type = value >= 2000 ? 'Billete' : 'Moneda';
+                    row.innerHTML = `
+                        <td>${type} de $${formatNumber(value)}</td>
+                        <td><input type="number" class="form-control form-control-sm denom-input" data-value="${value}" min="0" oninput="updateReconciliationTotals()"></td>
+                        <td id="total-${String(value).replace('.', '_')}">$0</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            };
+
+            window.updateReconciliationTotals = () => {
+                let physicalTotal = 0;
+                document.querySelectorAll('.denom-input').forEach(input => {
+                    const count = parseInt(input.value) || 0;
+                    const value = parseFloat(input.dataset.value);
+                    const subtotal = count * value;
+                    physicalTotal += subtotal;
+                    document.getElementById(`total-${String(value).replace('.', '_')}`).textContent = `$${formatNumber(subtotal)}`;
+                });
+
+                document.getElementById('physical-total').textContent = `$${formatNumber(physicalTotal)}`;
+
+                const systemBalanceEl = document.getElementById('system-balance');
+                const systemBalance = parseFloat(systemBalanceEl.dataset.rawBalance) || 0;
+                
+                const difference = physicalTotal - systemBalance;
+                const differenceEl = document.getElementById('balance-difference');
+                
+                differenceEl.classList.remove('text-success', 'text-danger', 'text-primary');
+                if (difference > 0) {
+                    differenceEl.classList.add('text-success');
+                    differenceEl.textContent = `$${formatNumber(difference)} (Sobrante)`;
+                } else if (difference < 0) {
+                    differenceEl.classList.add('text-danger');
+                    differenceEl.textContent = `$${formatNumber(difference)} (Faltante)`;
+                } else {
+                    differenceEl.classList.add('text-primary');
+                    differenceEl.textContent = `$${formatNumber(difference)} (Cuadra)`;
+                }
+            };
+
+            window.openCashReconciliation = () => {
+                const entries = getEntries();
+                const localFundBalance = entries
+                    .filter(e => e.fund === 'Fondo Local')
+                    .reduce((acc, entry) => {
+                        const amount = parseFloat(entry.amount) || 0;
+                        return entry.type === 'Ingreso' ? acc + amount : acc - amount;
+                    }, 0);
+
+                const systemBalanceEl = document.getElementById('system-balance');
+                systemBalanceEl.textContent = `$${formatNumber(localFundBalance)}`;
+                systemBalanceEl.dataset.rawBalance = localFundBalance;
+                
+                // Resetear campos
+                document.querySelectorAll('.denom-input').forEach(input => input.value = '');
+                updateReconciliationTotals();
+                
+                cashReconciliationModal.show();
+            };
+
+            // Carga inicial de datos
+            buildDenominationTable();
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>
