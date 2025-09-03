@@ -1,4 +1,4 @@
-# Sistema de Contabilidad Sencilla
+# git remote add origin https://github.com/asesorsordos/Contabilidad-IPUC.git
 
 Una aplicación web simple y de una sola página para llevar un registro de ingresos y egresos. Diseñada para ser fácil de usar, funciona completamente en el navegador sin necesidad de un servidor o base de datos externa.
 
